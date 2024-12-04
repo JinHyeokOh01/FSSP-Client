@@ -6,10 +6,27 @@ import '../widgets/bottom_navigation.dart';
 import '../utils/modal_utils.dart';
 
 class ResultScreen extends StatefulWidget {
+  static Route<dynamic> route() {
+    return MaterialPageRoute<dynamic>(
+      builder: (BuildContext context) {
+        // Named route에서 전달된 arguments 처리
+        final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+        return ResultScreen(
+          message: args['message'] as String,
+          response: args['response'] as String,
+        );
+      },
+    );
+  }
+
   final String message;
   final String response;
   
-  const ResultScreen({super.key, required this.message, required this.response});
+  const ResultScreen({
+    super.key, 
+    required this.message, 
+    required this.response
+  });
   
   @override
   _ResultScreenState createState() => _ResultScreenState();
@@ -20,6 +37,7 @@ class _ResultScreenState extends State<ResultScreen> {
   final ChatService _chatService = ChatService();
   final LocationService _locationService = LocationService();
   String _currentLocation = '';
+  bool _isLoading = false;
   
   @override
   void initState() {
@@ -28,27 +46,53 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
-    final location = await _locationService.getCurrentAddress();
-    setState(() {
-      _currentLocation = location;
-    });
+    try {
+      final location = await _locationService.getCurrentAddress();
+      if (mounted) {
+        setState(() {
+          _currentLocation = location;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('위치 정보를 가져오는데 실패했습니다.')),
+        );
+      }
+    }
   }
 
   Future<void> _searchRestaurants(String keyword) async {
-    if (_currentLocation.isEmpty || keyword.isEmpty) return;
-    
-    final query = "$_currentLocation $keyword";
-    try {
-      final restaurants = await _chatService.searchRestaurants(query);
-      Navigator.pushNamed(
-        context,
-        '/search-results',
-        arguments: restaurants,
-      );
-    } catch (e) {
+    if (_currentLocation.isEmpty || keyword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('검색 중 오류가 발생했습니다.')),
+        const SnackBar(content: Text('위치 정보와 검색어를 확인해주세요.')),
       );
+      return;
+    }
+    
+    setState(() => _isLoading = true);
+    
+    try {
+      final query = "$_currentLocation $keyword";
+      final result = await _chatService.searchRestaurants(query);
+      
+      if (mounted) {
+        if (result['success']) {
+          Navigator.pushNamed(
+            context,
+            '/search-results',
+            arguments: result['data'],
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['error'] ?? '검색 중 오류가 발생했습니다.')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -96,6 +140,40 @@ class _ResultScreenState extends State<ResultScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 사용자 메시지
+                      const Text(
+                        '메시지',
+                        style: TextStyle(
+                          color: Color(0xFF1E1E1E),
+                          fontSize: 16,
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: ShapeDecoration(
+                          color: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            side: const BorderSide(color: Color(0xFFD9D9D9)),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          widget.message,
+                          style: const TextStyle(
+                            color: Color(0xFF1E1E1E),
+                            fontSize: 16,
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
                       // 채팅 응답
                       const Text(
                         '답변',
@@ -149,6 +227,7 @@ class _ResultScreenState extends State<ResultScreen> {
                               height: 48,
                               child: TextField(
                                 controller: _searchController,
+                                enabled: !_isLoading,
                                 decoration: InputDecoration(
                                   hintText: '메뉴 이름',
                                   hintStyle: const TextStyle(
@@ -163,10 +242,17 @@ class _ResultScreenState extends State<ResultScreen> {
                                     borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
                                   ),
                                   suffixIcon: IconButton(
-                                    icon: const Icon(Icons.search),
-                                    onPressed: () => _searchRestaurants(_searchController.text),
+                                    icon: _isLoading
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        )
+                                      : const Icon(Icons.search),
+                                    onPressed: _isLoading ? null : () => _searchRestaurants(_searchController.text),
                                   ),
                                 ),
+                                onSubmitted: (value) => _searchRestaurants(value),
                               ),
                             ),
                           ],

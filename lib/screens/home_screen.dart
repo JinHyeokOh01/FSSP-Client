@@ -14,6 +14,40 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
+  bool _isLoading = false;
+
+  Future<void> _handleMessageSubmit() async {
+    final message = _messageController.text;
+    if (message.isEmpty) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _chatService.sendMessage(message);
+      
+      if (mounted) {
+        if (result['success']) {
+          _messageController.clear();
+          Navigator.pushNamed(
+            context,
+            '/result',
+            arguments: {
+              'message': message,
+              'response': result['data'],
+            },
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['error'] ?? '오류가 발생했습니다')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,26 +125,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: TextField(
                         controller: _messageController,
+                        enabled: !_isLoading,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _handleMessageSubmit(),
                         decoration: InputDecoration(
                           hintText: '메시지를 입력하세요...',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                           suffixIcon: IconButton(
-                            icon: const Icon(Icons.send),
-                            onPressed: () async {
-                              if (_messageController.text.isNotEmpty) {
-                                final response = await _chatService.sendMessage(_messageController.text);
-                                Navigator.pushNamed(
-                                  context,
-                                  '/result',
-                                  arguments: {
-                                    'message': _messageController.text,
-                                    'response': response,
-                                  },
-                                );
-                              }
-                            },
+                            icon: _isLoading 
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.send),
+                            onPressed: _isLoading ? null : _handleMessageSubmit,
                           ),
                         ),
                       ),

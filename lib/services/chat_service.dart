@@ -5,7 +5,7 @@ import 'dart:convert';
 class ChatService {
   static const String baseUrl = 'http://10.0.2.2:8080';
 
-  Future<String> sendMessage(String message) async {
+  Future<Map<String, dynamic>> sendMessage(String message) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/api/chat'),
@@ -13,19 +13,28 @@ class ChatService {
         body: json.encode({'message': message}),
       );
 
+      final responseData = json.decode(response.body);
+      
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        return responseData['response'] ?? '응답을 받지 못했습니다.';
+        return {
+          'success': true,
+          'data': responseData['response'] ?? '응답을 받지 못했습니다.'
+        };
       } else {
-        throw Exception('Failed to send message');
+        return {
+          'success': false,
+          'error': '서버 오류: ${response.statusCode}'
+        };
       }
     } catch (e) {
-      return '오류가 발생했습니다: $e';
+      return {
+        'success': false,
+        'error': '네트워크 오류가 발생했습니다: $e'
+      };
     }
   }
 
-  // lib/services/chat_service.dart에 추가
-  Future<String> searchRestaurants(String query) async {
+  Future<Map<String, dynamic>> searchRestaurants(String query) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/api/search').replace(
@@ -34,14 +43,24 @@ class ChatService {
         headers: {'Content-Type': 'application/json'},
       );
 
+      final responseData = json.decode(response.body);
+      
       if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        return responseData['response'] ?? '검색 결과가 없습니다.';
+        return {
+          'success': true,
+          'data': responseData['response'] ?? '검색 결과가 없습니다.'
+        };
       } else {
-        throw Exception('Failed to search restaurants');
+        return {
+          'success': false,
+          'error': '서버 오류: ${response.statusCode}'
+        };
       }
     } catch (e) {
-      return '검색 중 오류가 발생했습니다: $e';
+      return {
+        'success': false,
+        'error': '검색 중 오류가 발생했습니다: $e'
+      };
     }
   }
 }

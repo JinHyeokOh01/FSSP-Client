@@ -59,7 +59,7 @@ class MyApp extends StatelessWidget {
                   }
                   
                   if (snapshot.data == true) {
-                    return HomeScreen();
+                    return const HomeScreen();
                   }
                   
                   return const LoginScreen();
@@ -75,30 +75,45 @@ class MyApp extends StatelessWidget {
           
           case '/home':
             return MaterialPageRoute(
-              builder: (_) => HomeScreen(),
+              builder: (_) => const HomeScreen(),
               settings: const RouteSettings(name: '/home'),
             );
           
           case '/result':
-            if (settings.arguments is! Map<String, String>) {
-              return MaterialPageRoute(builder: (_) => const LoginScreen());
+            if (settings.arguments == null) {
+              return MaterialPageRoute(builder: (_) => const HomeScreen());
             }
-            final args = settings.arguments as Map<String, String>;
-            if (!args.containsKey('message') || !args.containsKey('response')) {
-              return MaterialPageRoute(builder: (_) => const LoginScreen());
+            
+            if (settings.arguments is! Map<String, dynamic>) {
+              return MaterialPageRoute(builder: (_) => const HomeScreen());
             }
+
+            final args = settings.arguments as Map<String, dynamic>;
+            final message = args['message'];
+            final response = args['response'];
+            
+            if (message == null || response == null || 
+                message is! String || response is! String) {
+              return MaterialPageRoute(builder: (_) => const HomeScreen());
+            }
+
             return MaterialPageRoute(
               builder: (_) => ResultScreen(
-                message: args['message']!,
-                response: args['response']!,
+                message: message,
+                response: response,
               ),
               settings: const RouteSettings(name: '/result'),
             );
           
           case '/search-results':
-            if (settings.arguments is! List<Restaurant>) {
-              return MaterialPageRoute(builder: (_) => const LoginScreen());
+            if (settings.arguments == null) {
+              return MaterialPageRoute(builder: (_) => const HomeScreen());
             }
+            
+            if (settings.arguments is! List<Restaurant>) {
+              return MaterialPageRoute(builder: (_) => const HomeScreen());
+            }
+
             final restaurants = settings.arguments as List<Restaurant>;
             return MaterialPageRoute(
               builder: (_) => SearchResultsScreen(restaurants: restaurants),
@@ -112,7 +127,7 @@ class MyApp extends StatelessWidget {
             );
           
           default:
-            return MaterialPageRoute(builder: (_) => const LoginScreen());
+            return MaterialPageRoute(builder: (_) => const HomeScreen());
         }
       },
     );
