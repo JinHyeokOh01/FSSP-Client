@@ -1,4 +1,3 @@
-// lib/screens/favorites_screen.dart
 import 'package:flutter/material.dart';
 import '../models/restaurant.dart';
 import '../services/favorites_service.dart';
@@ -38,9 +37,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       setState(() {
         _isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('즐겨찾기 목록을 불러오는데 실패했습니다.')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('즐겨찾기 목록을 불러오는데 실패했습니다.')),
+        );
+      }
     }
   }
 
@@ -94,33 +95,39 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         ),
                       ),
                     )
-                  : RefreshIndicator(
-                      onRefresh: _loadFavorites,
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _favoriteRestaurants.length,
-                        itemBuilder: (context, index) {
-                          final restaurant = _favoriteRestaurants[index];
-                          return RestaurantListItem(
-                            restaurant: restaurant,
-                            onFavoriteToggle: () async {
-                              try {
-                                await _favoritesService.removeFromFavorites(restaurant.name);
-                                setState(() {
-                                  _favoriteRestaurants.removeAt(index);
-                                });
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _favoriteRestaurants.length,
+                      itemBuilder: (context, index) {
+                        final restaurant = _favoriteRestaurants[index];
+                        return RestaurantListItem(
+                          restaurant: restaurant,
+                          onFavoriteToggle: () async {
+                            try {
+                              await _favoritesService.removeFromFavorites(restaurant.name);
+                              setState(() {
+                                _favoriteRestaurants.removeAt(index);
+                              });
+                              if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('즐겨찾기에서 삭제되었습니다.')),
                                 );
-                              } catch (e) {
+                              }
+                            } catch (e) {
+                              String errorMessage = '오류가 발생했습니다.';
+                              if (e.toString().contains('로그인이 필요합니다')) {
+                                errorMessage = '로그인이 필요한 서비스입니다.';
+                                Navigator.pushNamed(context, '/login');
+                              }
+                              if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('삭제 중 오류가 발생했습니다.')),
+                                  SnackBar(content: Text(errorMessage)),
                                 );
                               }
-                            },
-                          );
-                        },
-                      ),
+                            }
+                          },
+                        );
+                      },
                     ),
             ),
 

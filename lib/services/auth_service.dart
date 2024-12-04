@@ -1,13 +1,41 @@
-// lib/services/auth_service.dart
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/user.dart';
+import '../services/restaurant_service.dart';
+import '../services/favorites_service.dart';
+import '../services/chat_service.dart';
 
 class AuthService {
   static const String baseUrl = 'http://10.0.2.2:8080';
-  static Map<String, String> _headers = {
+  final Map<String, String> _headers = {
     'Content-Type': 'application/json',
   };
+  
+  final RestaurantService _restaurantService;
+  final FavoritesService _favoritesService;
+
+  static final AuthService _instance = AuthService._internal(
+    RestaurantService(),
+    FavoritesService(),
+  );
+  
+  factory AuthService() {
+    return _instance;
+  }
+  
+  AuthService._internal(this._restaurantService, this._favoritesService);
+
+  // AuthService의 _updateCookie 메소드 수정
+  void _updateCookie(String? cookie) {
+    if (cookie != null) {
+      print('Updating cookie in AuthService: $cookie');
+      _headers['Cookie'] = cookie;
+      _restaurantService.setCookie(cookie);
+      _favoritesService.setCookie(cookie);
+      ChatService().setCookie(cookie);  // ChatService에도 쿠키 전달
+      print('AuthService headers after update: $_headers');
+    }
+  }
 
   Future<bool> register(String email, String password, String name) async {
     try {
@@ -36,6 +64,7 @@ class AuthService {
 
   Future<bool> login(String email, String password) async {
     try {
+      print('Login request headers: $_headers');
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: _headers,
@@ -45,12 +74,16 @@ class AuthService {
         }),
       );
 
+      print('Login response headers: ${response.headers}');
       if (response.statusCode == 200) {
         final cookies = response.headers['set-cookie'];
+        print('Received cookies from login: $cookies');
         if (cookies != null) {
-          _headers['Cookie'] = cookies;
+          _updateCookie(cookies);
+          final responseData = json.decode(response.body);
+          print('Login response data: $responseData');
+          return true;
         }
-        return true;
       }
       
       print('Login failed: ${response.statusCode} - ${response.body}');
@@ -70,6 +103,8 @@ class AuthService {
 
       if (response.statusCode == 200) {
         _headers.remove('Cookie');
+        _restaurantService.clearCookie();
+        _favoritesService.clearCookie();
         return true;
       }
       return false;
@@ -93,6 +128,10 @@ class AuthService {
           email: data['email'],
           name: data['name'],
         );
+      }
+      
+      if (response.statusCode == 401) {
+        return null;
       }
       
       print('Get user error: ${response.statusCode} - ${response.body}');

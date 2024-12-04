@@ -73,19 +73,32 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                       final restaurant = widget.restaurants[index];
                       return RestaurantListItem(
                         restaurant: restaurant,
+                        // lib/screens/search_results_screen.dart 의 onFavoriteToggle 부분 수정
                         onFavoriteToggle: () async {
                           try {
                             if (restaurant.isFavorite) {
                               await _restaurantService.removeFromFavorites(restaurant.name);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('즐겨찾기에서 삭제되었습니다.')),
+                              );
                             } else {
-                              await _restaurantService.addToFavorites(restaurant.name);
+                              await _restaurantService.addToFavorites(restaurant);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('즐겨찾기에 추가되었습니다.')),
+                              );
                             }
                             setState(() {
                               restaurant.isFavorite = !restaurant.isFavorite;
                             });
                           } catch (e) {
+                            String errorMessage = '오류가 발생했습니다.';
+                            if (e.toString().contains('로그인이 필요합니다')) {
+                              errorMessage = '로그인이 필요한 서비스입니다.';
+                              // 로그인 페이지로 이동
+                              Navigator.pushNamed(context, '/login');
+                            }
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('즐겨찾기 처리 중 오류가 발생했습니다.')),
+                              SnackBar(content: Text(errorMessage)),
                             );
                           }
                         },
