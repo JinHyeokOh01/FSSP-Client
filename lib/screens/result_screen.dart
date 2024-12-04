@@ -36,7 +36,7 @@ class _ResultScreenState extends State<ResultScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ChatService _chatService = ChatService();
   final LocationService _locationService = LocationService();
-  String _currentLocation = '';
+  String _currentLocation = '영통동';
   bool _isLoading = false;
   
   @override
@@ -63,38 +63,48 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   Future<void> _searchRestaurants(String keyword) async {
-    if (_currentLocation.isEmpty || keyword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('위치 정보와 검색어를 확인해주세요.')),
-      );
-      return;
+  if (_currentLocation.isEmpty || keyword.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('위치 정보와 검색어를 확인해주세요.')),
+    );
+    return;
+  }
+  
+  setState(() => _isLoading = true);
+  
+  try {
+    final query = "$_currentLocation $keyword";
+    print('Searching with query: $query'); // 디버깅용
+
+    final result = await _chatService.searchRestaurants(query);
+    print('Search result: $result'); // 디버깅용
+    
+    if (mounted) {
+      if (result['success'] && result['data'] is List) {
+        Navigator.pushNamed(
+          context,
+          '/search-results',
+          arguments: result['data'],
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['error'] ?? '검색 중 오류가 발생했습니다.')),
+        );
+      }
     }
-    
-    setState(() => _isLoading = true);
-    
-    try {
-      final query = "$_currentLocation $keyword";
-      final result = await _chatService.searchRestaurants(query);
-      
-      if (mounted) {
-        if (result['success']) {
-          Navigator.pushNamed(
-            context,
-            '/search-results',
-            arguments: result['data'],
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['error'] ?? '검색 중 오류가 발생했습니다.')),
-          );
-        }
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+  } catch (e) {
+    print('Search error: $e'); // 디버깅용
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('검색 중 오류가 발생했습니다: $e')),
+      );
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

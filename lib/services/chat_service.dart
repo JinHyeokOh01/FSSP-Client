@@ -1,6 +1,7 @@
 // lib/services/chat_service.dart
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../models/restaurant.dart';
 
 class ChatService {
   static const String baseUrl = 'http://10.0.2.2:8080';
@@ -46,9 +47,18 @@ class ChatService {
       final responseData = json.decode(response.body);
       
       if (response.statusCode == 200) {
+        // 응답 데이터를 Restaurant 객체 리스트로 변환
+        final List<dynamic> restaurantData = responseData['restaurants'] ?? [];
+        final restaurants = restaurantData.map((data) => Restaurant(
+          name: data['name'] ?? '',
+          category: data['category'] ?? '',
+          address: data['address'] ?? '',
+          isFavorite: data['isFavorite'] ?? false,
+        )).toList();
+
         return {
           'success': true,
-          'data': responseData['response'] ?? '검색 결과가 없습니다.'
+          'data': restaurants
         };
       } else {
         return {
