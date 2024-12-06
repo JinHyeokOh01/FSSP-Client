@@ -1,4 +1,3 @@
-// lib/screens/home_screen.dart
 import 'package:flutter/material.dart';
 import '../services/chat_service.dart';
 import '../widgets/bottom_navigation.dart';
@@ -57,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             // 앱바
             Container(
-              width: 412,
+              width: double.infinity,
               height: 64,
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               decoration: const BoxDecoration(color: Color(0xFFCBF1BF)),
@@ -89,17 +88,46 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Stack(
                 children: [
+                  // 로고 이미지
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 40,
+                    child: Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset(
+                            'assets/images/app_logo.png',
+                            width: 150,
+                            height: 150,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
                   // 중앙 텍스트
                   const Positioned(
                     left: 0,
                     right: 0,
-                    top: 200,
+                    top: 250,
                     child: Text(
                       '대화를 시작해보세요!',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.black,
-                        fontSize: 32,
+                        fontSize: 26,
                         fontFamily: 'Jua',
                         fontWeight: FontWeight.w400,
                       ),
@@ -110,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Positioned(
                     left: 20,
                     right: 20,
-                    bottom: 20,
+                    bottom: 80,
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -129,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         textInputAction: TextInputAction.send,
                         onSubmitted: (_) => _handleMessageSubmit(),
                         decoration: InputDecoration(
-                          hintText: '메시지를 입력하세요...',
+                          hintText: 'ex) 점심 메뉴 추천 해줘',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),

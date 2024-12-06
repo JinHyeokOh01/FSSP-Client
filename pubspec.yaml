@@ -65,7 +65,7 @@ flutter:
     - assets/images/
     - assets/fonts/    # fonts 폴더도 assets에 추가
 
-  # fonts:
-  #   - family: Jua
-  #     fonts:
-  #       - asset: assets/fonts/BMJUA.ttf
+  fonts:
+    - family: Jua
+      fonts:
+        - asset: assets/fonts/BMJUA_ttf.ttf

@@ -8,7 +8,8 @@ class RestaurantListItem extends StatelessWidget {
   final VoidCallback onFavoriteToggle;
   final RestaurantService _restaurantService = RestaurantService();
 
-  RestaurantListItem({super.key, 
+  RestaurantListItem({
+    super.key, 
     required this.restaurant,
     required this.onFavoriteToggle,
   });
@@ -21,14 +22,21 @@ class RestaurantListItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 즐겨찾기 아이콘
-          IconButton(
-            icon: Icon(
-              restaurant.isFavorite ? Icons.star : Icons.star_border,
-              color: Colors.amber,
-              size: 28,
+          Container(
+            margin: const EdgeInsets.only(top: 0), // 아이콘을 위로 올림
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: Icon(
+                restaurant.isFavorite ? Icons.star : Icons.star_border,
+                color: Colors.black,
+                size: 24,
+              ),
+              onPressed: onFavoriteToggle,
             ),
-            onPressed: onFavoriteToggle,
           ),
+
+          const SizedBox(width: 4),
 
           // 식당 정보
           Expanded(
@@ -39,7 +47,7 @@ class RestaurantListItem extends StatelessWidget {
                   restaurant.name,
                   style: const TextStyle(
                     color: Colors.black,
-                    fontSize: 24,
+                    fontSize: 20,
                     fontFamily: 'Roboto',
                     fontWeight: FontWeight.w400,
                   ),

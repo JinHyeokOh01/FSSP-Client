@@ -216,7 +216,7 @@ class _ResultScreenState extends State<ResultScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 20),
 
                       // 검색 섹션
                       Center(
@@ -226,7 +226,7 @@ class _ResultScreenState extends State<ResultScreen> {
                               '식당을 검색해볼까요?',
                               style: TextStyle(
                                 color: Colors.black,
-                                fontSize: 24,
+                                fontSize: 20,
                                 fontFamily: 'Jua',
                                 fontWeight: FontWeight.w400,
                               ),

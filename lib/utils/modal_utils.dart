@@ -4,16 +4,21 @@ import '../widgets/profile_modal.dart';
 
 class ModalUtils {
   static void showProfileModal(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final topPadding = mediaQuery.padding.top + kToolbarHeight;
+
     showDialog(
       context: context,
       barrierColor: Colors.transparent,
       builder: (BuildContext context) {
-        return Align(
-          alignment: Alignment.topRight,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 120, right: 16),
-            child: ProfileModal(),
-          ),
+        return Stack(
+          children: [
+            Positioned(
+              right: 16,
+              top: topPadding,
+              child: ProfileModal(topPadding: topPadding),
+            ),
+          ],
         );
       },
     );
