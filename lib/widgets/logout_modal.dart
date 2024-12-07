@@ -9,7 +9,7 @@ class LogoutModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+      return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
       child: Container(
@@ -22,100 +22,84 @@ class LogoutModal extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
         ),
-        child: Stack(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 로그아웃 메시지
-            const Positioned(
-              left: 32,
-              top: 91,
-              child: SizedBox(
-                width: 261,
-                height: 32,
-                child: Text(
-                  '로그아웃 하시겠습니까?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 20,
-                    fontFamily: 'Roboto',
-                    fontWeight: FontWeight.w500,
-                    height: 0.07,
-                    letterSpacing: 0.20,
-                  ),
-                ),
+            const Text(
+              '로그아웃 하시겠습니까?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontFamily: 'Roboto',
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.20,
               ),
             ),
-
-            // 예 버튼
-            Positioned(
-              left: 49,
-              top: 170,
-              child: GestureDetector(
-                onTap: () async {
-                  final success = await _authService.logout();
-                  if (success) {
-                    Navigator.of(context).pushNamedAndRemoveUntil(
-                      '/login',
-                      (Route<dynamic> route) => false,
-                    );
-                  }
-                },
-                child: Container(
-                  width: 94,
-                  height: 28,
-                  decoration: ShapeDecoration(
-                    color: const Color(0xFFFF7171),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+            const SizedBox(height: 47), // 텍스트와 버튼 사이 간격
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                    final success = await _authService.logout();
+                    if (success) {
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                        '/login',
+                        (Route<dynamic> route) => false,
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 94,
+                    height: 28,
+                    decoration: ShapeDecoration(
+                      color: const Color(0xFFFF7171),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '예',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w500,
-                        height: 0.10,
-                        letterSpacing: 0.14,
+                    child: const Center(
+                      child: Text(
+                        '예',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.14,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-
-            // 아니오 버튼
-            Positioned(
-              left: 182,
-              top: 170,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  width: 94,
-                  height: 28,
-                  decoration: ShapeDecoration(
-                    color: const Color(0xFFE8E8E8),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                const SizedBox(width: 39), // 버튼 사이 간격
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 94,
+                    height: 28,
+                    decoration: ShapeDecoration(
+                      color: const Color(0xFFE8E8E8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      '아니오',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 14,
-                        fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w500,
-                        height: 0.10,
-                        letterSpacing: 0.14,
+                    child: const Center(
+                      child: Text(
+                        '아니오',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 14,
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.14,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
