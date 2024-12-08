@@ -1,5 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:isolate';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../services/restaurant_service.dart';
 import '../services/favorites_service.dart';
@@ -25,68 +27,59 @@ class AuthService {
   
   AuthService._internal(this._restaurantService, this._favoritesService);
 
-  // AuthService의 _updateCookie 메소드 수정
+  // 이 메소드는 UI 업데이트와 관련되어 있어서 메인 Isolate에서 실행되어야 함
   void _updateCookie(String? cookie) {
     if (cookie != null) {
-      print('Updating cookie in AuthService: $cookie');
       _headers['Cookie'] = cookie;
       _restaurantService.setCookie(cookie);
       _favoritesService.setCookie(cookie);
-      ChatService().setCookie(cookie);  // ChatService에도 쿠키 전달
-      print('AuthService headers after update: $_headers');
+      ChatService().setCookie(cookie);
     }
   }
 
+  // 회원가입시 비밀번호 해싱 등의 무거운 작업을 Isolate에서 처리
   Future<bool> register(String email, String password, String name) async {
     try {
+      // 비밀번호 해싱을 별도 Isolate에서 처리
+      final hashedPassword = await compute(_hashPassword, password);
+      
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register'),
         headers: _headers,
         body: json.encode({
           'email': email,
-          'password': password,
+          'password': hashedPassword,
           'name': name,
         }),
       );
 
-      if (response.statusCode == 200) {
-        print('Registration successful');
-        return true;
-      }
-      
-      print('Registration failed: ${response.statusCode} - ${response.body}');
-      return false;
+      return response.statusCode == 200;
     } catch (e) {
       print('Registration error: $e');
       return false;
     }
   }
 
+  // 비밀번호 해싱 함수 (별도 Isolate에서 실행)
+  static String _hashPassword(String password) {
+    // 실제로는 더 복잡한 해싱 알고리즘을 사용해야 함
+    return base64Encode(utf8.encode(password));
+  }
+
   Future<bool> login(String email, String password) async {
     try {
-      print('Login request headers: $_headers');
-      final response = await http.post(
-        Uri.parse('$baseUrl/auth/login'),
-        headers: _headers,
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
-      );
+      // 로그인 데이터 처리를 별도 Isolate에서 수행
+      final loginResult = await compute(_processLogin, {
+        'email': email,
+        'password': password,
+        'headers': _headers,
+        'baseUrl': baseUrl,
+      });
 
-      print('Login response headers: ${response.headers}');
-      if (response.statusCode == 200) {
-        final cookies = response.headers['set-cookie'];
-        print('Received cookies from login: $cookies');
-        if (cookies != null) {
-          _updateCookie(cookies);
-          final responseData = json.decode(response.body);
-          print('Login response data: $responseData');
-          return true;
-        }
+      if (loginResult['success']) {
+        _updateCookie(loginResult['cookies']);
+        return true;
       }
-      
-      print('Login failed: ${response.statusCode} - ${response.body}');
       return false;
     } catch (e) {
       print('Login error: $e');
@@ -94,17 +87,41 @@ class AuthService {
     }
   }
 
-  Future<bool> logout() async {
+  // 로그인 처리를 위한 별도 Isolate 함수
+  static Future<Map<String, dynamic>> _processLogin(Map<String, dynamic> data) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/auth/logout'),
-        headers: _headers,
+        Uri.parse(data['baseUrl'] + '/auth/login'),
+        headers: data['headers'],
+        body: json.encode({
+          'email': data['email'],
+          'password': data['password'],
+        }),
       );
 
-      if (response.statusCode == 200) {
+      return {
+        'success': response.statusCode == 200,
+        'cookies': response.headers['set-cookie'],
+      };
+    } catch (e) {
+      return {'success': false, 'cookies': null};
+    }
+  }
+
+  Future<bool> logout() async {
+    try {
+      // 로그아웃 처리를 별도 Isolate에서 수행
+      final success = await compute(_processLogout, {
+        'headers': _headers,
+        'baseUrl': baseUrl,
+      });
+
+      if (success) {
         _headers.remove('Cookie');
-        _restaurantService.clearCookie();
-        _favoritesService.clearCookie();
+        await Future.wait([
+          Future(() => _restaurantService.clearCookie()),
+          Future(() => _favoritesService.clearCookie()),
+        ]);
         return true;
       }
       return false;
@@ -114,27 +131,34 @@ class AuthService {
     }
   }
 
+  // 로그아웃 처리를 위한 별도 Isolate 함수
+  static Future<bool> _processLogout(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse(data['baseUrl'] + '/auth/logout'),
+        headers: data['headers'],
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<User?> getCurrentUser() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/auth/current-user'),
-        headers: _headers,
-      );
+      // 사용자 데이터 처리를 별도 Isolate에서 수행
+      final userData = await compute(_fetchUserData, {
+        'headers': _headers,
+        'baseUrl': baseUrl,
+      });
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+      if (userData != null) {
         return User(
-          id: data['id'],
-          email: data['email'],
-          name: data['name'],
+          id: userData['id'],
+          email: userData['email'],
+          name: userData['name'],
         );
       }
-      
-      if (response.statusCode == 401) {
-        return null;
-      }
-      
-      print('Get user error: ${response.statusCode} - ${response.body}');
       return null;
     } catch (e) {
       print('Get user error: $e');
@@ -142,24 +166,54 @@ class AuthService {
     }
   }
 
-  Future<String> sendChatMessage(String message) async {
+  // 사용자 데이터 조회를 위한 별도 Isolate 함수
+  static Future<Map<String, dynamic>?> _fetchUserData(Map<String, dynamic> data) async {
     try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/chat'),
-        headers: _headers,
-        body: json.encode({'message': message}),
+      final response = await http.get(
+        Uri.parse(data['baseUrl'] + '/auth/current-user'),
+        headers: data['headers'],
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
-        return data['response'] ?? '응답을 받지 못했습니다.';
+        return json.decode(response.body);
       }
-      
-      print('Chat error: ${response.statusCode} - ${response.body}');
-      return '오류가 발생했습니다.';
+      return null;
     } catch (e) {
-      print('Chat error: $e');
+      return null;
+    }
+  }
+
+  Future<String> sendChatMessage(String message) async {
+    try {
+      // 채팅 메시지 처리를 별도 Isolate에서 수행
+      final response = await compute(_processChatMessage, {
+        'message': message,
+        'headers': _headers,
+        'baseUrl': baseUrl,
+      });
+      
+      return response ?? '오류가 발생했습니다.';
+    } catch (e) {
       return '서버 연결에 실패했습니다.';
+    }
+  }
+
+  // 채팅 메시지 처리를 위한 별도 Isolate 함수
+  static Future<String?> _processChatMessage(Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse(data['baseUrl'] + '/chat'),
+        headers: data['headers'],
+        body: json.encode({'message': data['message']}),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return responseData['response'];
+      }
+      return null;
+    } catch (e) {
+      return null;
     }
   }
 }
