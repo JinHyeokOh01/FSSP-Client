@@ -36,6 +36,8 @@ class _ResultScreenState extends State<ResultScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ChatService _chatService = ChatService();
   final LocationService _locationService = LocationService();
+  //에뮬레이터에서는 geoLocation이 동작하지 않으므로 '영통동'으로 설정하고 진행하였음.
+  //실제 환경에서는 String _currentLocation = '';로 설정하면 됨.
   String _currentLocation = '영통동';
   bool _isLoading = false;
   
